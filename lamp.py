@@ -72,6 +72,8 @@ class NeuroLamp:
         # Find the most occurring color
         unique_colors, counts = np.unique(rounded_colors, axis=0, return_counts=True)
         most_occurring_color = unique_colors[np.argmax(counts)]
+        # Values in array are reversed (bgr -> rgb)
+        most_occurring_color = [int(f) for f in most_occurring_color[::-1]]
         
         # Calculate brightness as a percentage of closeness to white
         brightness_percentage = (np.linalg.norm(most_occurring_color) / np.linalg.norm([255, 255, 255])) * 100
