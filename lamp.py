@@ -64,39 +64,30 @@ class NeuroLamp:
 
         print(f"Saving debug rectangle.png")
         cv2.imwrite("rectangle.png", roi)
-
-        # Brightest color
-        brightest_pixel = roi.reshape(-1, 3).max(axis=0)
-
-        # Filter out black/white-like colors
+        
+        # Round each pixel's color values to the nearest multiple of 10
         roi_reshaped = roi.reshape(-1, 3)
-        brightness = np.linalg.norm(roi_reshaped, axis=1)  # Calculate brightness
-        filtered_colors = roi_reshaped[(brightness > 150) & (brightness < 245)]
+        rounded_colors = (np.round(roi_reshaped / 5) * 5).astype(int)
+        
+        # Find the most occurring color
+        unique_colors, counts = np.unique(rounded_colors, axis=0, return_counts=True)
+        most_occurring_color = unique_colors[np.argmax(counts)]
+        
+        # Calculate brightness as a percentage of closeness to white
+        brightness_percentage = (np.linalg.norm(most_occurring_color) / np.linalg.norm([255, 255, 255])) * 100
+        
+        self.last_color = most_occurring_color
+        return most_occurring_color, brightness_percentage
 
-        if len(filtered_colors) > 0:
-            # Calculate "distance from gray" for each color
-            distances_from_gray = np.abs(filtered_colors[:, 0] - filtered_colors[:, 1]) + \
-                                  np.abs(filtered_colors[:, 1] - filtered_colors[:, 2]) + \
-                                  np.abs(filtered_colors[:, 2] - filtered_colors[:, 0])
-            furthest_from_gray = filtered_colors[np.argmax(distances_from_gray)]
-        else:
-            # Default to previous color
-            furthest_from_gray = self.last_color
-
-        self.last_color = furthest_from_gray
-        return brightest_pixel, furthest_from_gray, roi
 
 
     def get_lavalamp_color(self, frame):
-        brightest, furthest_from_gray, roi = self.get_important_pixels(frame)
+        color, brightness = self.get_important_pixels(frame)
 
-        brightest = [int(b) for b in brightest]
-        brightness = sum(brightest) // 3 / 256 * 100
-        brightness = int(brightness)
-        # Values in array are reversed (bgr -> rgb)
-        furthest_from_gray = [int(f) for f in furthest_from_gray[::-1]]
+        # TODO: this is currently useless
+        brightness = 100
 
-        return brightness, furthest_from_gray
+        return brightness, color
 
 
     def run(self):
